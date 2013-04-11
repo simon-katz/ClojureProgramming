@@ -22,3 +22,4 @@ native
 checkouts
 .lein-deps-sum
 
+.lein-repl-history

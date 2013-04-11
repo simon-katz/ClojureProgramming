@@ -1,15 +1,22 @@
 (ns com.clojurebook.url-shortener
-  (:use [compojure.core :only (GET PUT POST defroutes)])
+  (:use [compojure.core :only (GET PUT POST defroutes)]
+        [ring.adapter.jetty :only (run-jetty)])
   (:require (compojure handler route)
             [ring.util.response :as response]))
+
+;;;; ___________________________________________________________________________
+;;;; ---- Concrete state ----
 
 (def ^:private counter (atom 0))
 
 (def ^:private mappings (ref {}))
 
-(defn url-for
-  [id]
-  (@mappings id))
+;;;; ___________________________________________________________________________
+;;;; ---- Working with state ----
+
+(defn url-for [id] (@mappings id))
+
+(defn ids [] (keys @mappings))
 
 (defn shorten!
  "Stores the given URL under a new unique identifier, or the given identifier
@@ -26,7 +33,10 @@
        (alter mappings assoc id url)
        id))))
 
-(defn retain
+;;;; ___________________________________________________________________________
+;;;; ---- Web front end ----
+
+(defn retain ; **** why no ! if shorten! has one?
   [& [url id :as args]]
   (if-let [id (apply shorten! args)]
     {:status 201
@@ -42,16 +52,42 @@
 
 (defroutes app*
   (GET "/" request "Welcome!")
+
+  ;; **** this is for a PUT request where the URL is a single segment
   (PUT "/:id" [id url] (retain url id))
+
+  ;; **** this is for any POST request
   (POST "/" [url] (if (empty? url)
                     {:status 400 :body "No `url` parameter provided"}
                     (retain url)))
+
+
+  
   (GET "/:id" [id] (redirect id))
-  (GET "/list/" [] (interpose "\n" (keys @mappings)))
+  (GET "/list/" [] (interpose "\n" (ids)))
   (compojure.route/not-found "Sorry, there's nothing here."))
 
-(def app (compojure.handler/api app*))
+;; (def app (compojure.handler/api app*))
+(defn app [& args] (apply (compojure.handler/api app*) args))
 
 ;; ; To run locally:
-;; (use '[ring.adapter.jetty :only (run-jetty)])     
-;; (def server (run-jetty #'app {:port 8080 :join? false}))
+#_
+(def server (run-jetty #'app {:port 8080 :join? false}))
+;; (.stop server)
+
+;;;; ___________________________________________________________________________
+;;;; Why to use #' ...
+;;;; Change definition of my-handler while the server is running.
+;;;; If the server has the ref, that's cool.
+;;;; If the server has the function (the result of evaluating 'my-handler'),
+;;;; no good.
+
+(defn my-handler
+  [{:keys [uri]}]
+  {:body (format "You requested %s" uri)})
+
+;; (def server (run-jetty #'my-handler {:port 8080 :join? false}))
+;; (def server (run-jetty my-handler {:port 8080 :join? false}))
+;; (.stop server)
+
+;;;; ___________________________________________________________________________

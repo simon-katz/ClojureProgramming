@@ -1,8 +1,9 @@
 (ns com.clojurebook.url-shortener
-  (:use [compojure.core :only (GET PUT POST defroutes)]
-        [ring.adapter.jetty :only (run-jetty)])
-  (:require (compojure handler route)
-            [ring.util.response :as response]))
+  (:require [compojure.core :refer [GET PUT POST defroutes]]
+            [compojure.handler :refer []]
+            [compojure.route :refer []]
+            [ring.adapter.jetty :refer [run-jetty]]
+            [ring.util.response :as response :refer []]))
 
 ;;;; ___________________________________________________________________________
 ;;;; ---- Concrete state ----

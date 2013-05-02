@@ -65,7 +65,10 @@
 
   
   (GET "/:id" [id] (redirect id))
-  (GET "/list/" [] (interpose "\n" (ids)))
+  (GET "/list/" [] (let [ids_ (ids)]
+                     (if (seq ids_)
+                       (interpose "\n" ids_)
+                       "Nothing registered.")))
   (compojure.route/not-found "Sorry, there's nothing here."))
 
 ;; (def app (compojure.handler/api app*))

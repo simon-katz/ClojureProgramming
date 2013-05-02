@@ -1,9 +1,9 @@
 (ns com.clojurebook.url-shortener
   (:require [compojure.core :refer [GET PUT POST defroutes]]
-            [compojure.handler :refer []]
-            [compojure.route :refer []]
+            [compojure.handler :refer [api]]
+            [compojure.route :refer [not-found]]
             [ring.adapter.jetty :refer [run-jetty]]
-            [ring.util.response :as response :refer []]))
+            [ring.util.response :refer [redirect]]))
 
 ;;;; ___________________________________________________________________________
 ;;;; ---- Concrete state ----
@@ -45,34 +45,29 @@
      :body (format "URL %s assigned the short identifier %s" url id)}
     {:status 409 :body (format "Short URL %s is already taken" id)}))
 
-(defn redirect
+(defn redirect-for-id
   [id]
   (if-let [url (url-for id)]
-    (response/redirect url)
+    (redirect url)
     {:status 404 :body (str "No such short URL: " id)}))
 
 (defroutes app*
   (GET "/" request "Welcome!")
-
   ;; **** this is for a PUT request where the URL is a single segment
   (PUT "/:id" [id url] (retain url id))
-
   ;; **** this is for any POST request
   (POST "/" [url] (if (empty? url)
                     {:status 400 :body "No `url` parameter provided"}
                     (retain url)))
-
-
-  
-  (GET "/:id" [id] (redirect id))
-  (GET "/list/" [] (let [ids_ (ids)]
-                     (if (seq ids_)
-                       (interpose "\n" ids_)
+  (GET "/:id" [id] (redirect-for-id id))
+  (GET "/list/" [] (let [ids (ids)]
+                     (if (seq ids)
+                       (interpose "\n" ids)
                        "Nothing registered.")))
-  (compojure.route/not-found "Sorry, there's nothing here."))
+  (not-found "Sorry, there's nothing here."))
 
-;; (def app (compojure.handler/api app*))
-(defn app [& args] (apply (compojure.handler/api app*) args))
+;; (def app (api app*))
+(defn app [& args] (apply (api app*) args))
 
 ;; ; To run locally:
 #_

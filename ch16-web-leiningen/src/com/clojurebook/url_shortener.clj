@@ -72,7 +72,8 @@
 ;; ; To run locally:
 #_
 (def server (run-jetty #'app {:port 8080 :join? false}))
-;; (.stop server)
+#_
+(.stop server)
 
 ;;;; ___________________________________________________________________________
 ;;;; Why to use #' ...

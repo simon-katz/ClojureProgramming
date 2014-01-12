@@ -26,7 +26,7 @@
   [board loc]
   (count (filter #(get-in board %) (neighbours loc))))
 
-(defn indexed-step 
+(defn indexed-step-original
   "Yields the next state of the board, using indices to determine neighbors,
    liveness, etc."
   [board]
@@ -44,23 +44,58 @@
                    nil)]
             (recur (assoc-in new-board [x y] new-liveness) x (inc y)))))))
 
+(defn new-liveness [board [x y]]
+  (case (count-neighbours board [x y])
+    2 (get-in board [x y])
+    3 :on
+    nil))
+
+(defn indexed-step 
+  "Yields the next state of the board, using indices to determine neighbors,
+   liveness, etc."
+  [board]
+  (let [w (count board)
+        h (count (first board))]
+    (loop [new-board board x 0 y 0]
+      (cond
+       (>= x w) new-board
+       (>= y h) (recur new-board (inc x) 0)
+       :else
+       (recur (assoc-in new-board [x y] (new-liveness board [x y]))
+              x
+              (inc y))))))
+
+(defn indexed-step-sk-no-vec-broken
+  [board]
+  ;; Not returning a vector.
+  ;; Even though this is returning a vector, I don't see why this
+  ;; doesn't return values that are equal to those returned by
+  ;; `indexed-step-sk`.
+  (let [w (count board)
+        h (count (first board))]
+    (for [x (range w)]
+      (for [y (range h)]
+        (new-liveness board [x y])))))
+
+(defn indexed-step-sk
+  [board]
+  (let [w (count board)
+        h (count (first board))]
+    (vec (for [x (range w)]
+           (vec (for [y (range h)]
+                  (new-liveness board [x y])))))))
 
 (defn indexed-step2
   [board]
   (let [w (count board)
         h (count (first board))]
     (reduce 
-      (fn [new-board x]
-        (reduce 
-          (fn [new-board y]
-            (let [new-liveness
-                   (case (count-neighbours board [x y])
-                     2 (get-in board [x y])
-                     3 :on
-                     nil)]
-              (assoc-in new-board [x y] new-liveness)))
-          new-board (range h)))
-      board (range w))))
+     (fn [new-board x]
+       (reduce 
+        (fn [new-board y]
+          (assoc-in new-board [x y] (new-liveness board [x y])))
+        new-board (range h)))
+     board (range w))))
 
 
 (defn indexed-step3
@@ -68,15 +103,9 @@
   (let [w (count board)
         h (count (first board))]
     (reduce 
-      (fn [new-board [x y]]
-        (let [new-liveness
-               (case (count-neighbours board [x y])
-                 2 (get-in board [x y])
-                 3 :on
-                 nil)]
-           (assoc-in new-board [x y] new-liveness)))
-      board (for [x (range h) y (range w)] [x y]))))
-
+     (fn [new-board [x y]]
+       (assoc-in new-board [x y] (new-liveness board [x y])))
+     board (for [x (range h) y (range w)] [x y]))))
 
 (defn window
   "Returns a lazy sequence of 3-item windows centered
@@ -144,6 +173,7 @@
   (stepper #(filter (fn [[i j]] (and (< -1 i w) (< -1 j h))) 
                     (neighbours %)) #{2 3} #{3}))
 
+#_
 (defn draw
   [w h step cells]
   (let [state (atom cells)
@@ -170,6 +200,7 @@
               (swap! state step)
               (.repaint pane)))))
 
+#_
 (defn rect-demo []
   (draw 30 30 (rect-stepper 30 30) 
-      #{[15 15] [15 17] [16 16] [15 16]}))
+        #{[15 15] [15 17] [16 16] [15 16]}))

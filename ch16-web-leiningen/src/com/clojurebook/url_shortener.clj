@@ -66,8 +66,7 @@
                        "Nothing registered.")))
   (not-found "Sorry, there's nothing here."))
 
-;; (def app (api app*))
-(defn app [& args] (apply (api app*) args))
+(def app (api app*))
 
 ;; ; To run locally:
 #_
